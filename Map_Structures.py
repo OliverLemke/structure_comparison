@@ -403,6 +403,12 @@ def plot_Feature_comparison(key, dict_mapping, dict_colors, dict_boundaries, out
         plt.savefig(os.path.join(output_path,key.replace(" ","_")+".png"), bbox_inches="tight")
     plt.close()
 
+def write_output(dict_molecules,dict_mapping,dict_mapping_colors, reference, output_path_data="."):
+    dict_full = {"Molecules":dict_molecules,
+                 "Mapping":dict_mapping,
+                 "Mapping Colors":dict_mapping_colors}
+    pickle.dump(dict_full, open(os.path.join(output_path_data,reference+".pkl"),"wb"))    
+    
 #%%
 ##################
 ## Dictionaries ##
@@ -569,15 +575,19 @@ dict_mapping_colors = mapping_colors(dict_mapping, dict_colors, dict_molecules, 
 ## Plots ##
 ###########
 
-
+# Plot characteristics
 for key in ["Amino Acid","Amino Acid reduced","Amino Acid Type","Amino Acid Type reduced","DSSP","DSSP reduced","SASA","pLDDT"]:
     if do_plots:
         plot_Feature_comparison(key, dict_mapping, dict_colors, dict_boundaries, output_path=output_path, ligands_exist=True)
     if do_plots_binding_site:
         plot_Feature_comparison(key, dict_mapping, dict_colors, dict_boundaries, output_path=output_path, ligands_exist=True, plot_ligand=True, dict_molecules=dict_molecules, reference=reference)
 
-# Use flag and loop over all keys
-# Plot binding site as a flag?
+############
+## Output ##
+############
+
+# Write output to file
+write_output(dict_molecules, dict_mapping,dict_mapping_colors, reference, output_path_data=output_path_data)
 
 #%%
 ############
