@@ -15,7 +15,6 @@ import copy
 import mdtraj as md
 import os
 
-# FASTA Structural alignment
 # Save one big dictionary for every analysis
 
 #%%
