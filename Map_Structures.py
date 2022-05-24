@@ -134,24 +134,29 @@ def get_ligands(files_ligands, ligands_to_be_excluded, ligands_exist=True):
         for line in molecule:
             if (line.startswith("HETATM")) and (line[17:20].strip() not in ligands_to_be_excluded):
                 ligands.append([float(el) for el in [line[30:38],line[38:46],line[46:54]]])
-    # Check whether ligands could be extracted
+    # Check whether ligands could be extracted (due to excluded ligands)
     if not ligands:
         ligands_exist = False
     return ligands, ligands_exist
 
 def get_indices_residues_ligands(dict_molecules, ligands, dist_cut_lig = 5, k = 100):
     for key, file in dict_molecules.items():
+        # Setup tree for protein
         tree_lig = scipy.spatial.cKDTree(file["Coordinates"]) 
         mapping_lig = []
+        # Check for neighboring w.r.t. ligands
         for item in ligands: 
             neighbor = tree_lig.query(item, k=k, distance_upper_bound = dist_cut_lig)
             mapping_lig.append(neighbor[1][neighbor[0]!=np.inf])
+        # Get unique neighbors
         mapping_lig = np.asarray(np.unique([el for cluster in mapping_lig for el in cluster]))
+        # Get unique amino acid indices
         mapping_lig_ai = np.unique(np.asarray([dict_molecules[key]["Indices"][item] for item in mapping_lig]))
+        # Update dictionary
         dict_molecules[key].update({"Ligand Indices":mapping_lig_ai})   
     return dict_molecules
 
-def mapping_Proteins(dict_molecules, reference, dist_cut = 5):
+def mapping_Proteins(dict_molecules, reference, dist_cut = 2):
     # Set reference
     ref = dict_molecules[reference]["C_alpha"]
     keys_list = [reference]
@@ -188,6 +193,7 @@ def mapping_Proteins(dict_molecules, reference, dist_cut = 5):
     return dict_mapping
 
 def write_indices_mapping(dict_molecules, dict_mapping, dist_cut = 2, output_path_data = "."):
+    # Write indices for mapping to file for plotting
     for ind,key in enumerate(dict_molecules.keys()):
         with open(os.path.join(output_path_data, "indices_mapping_{:.2f}_".format(dist_cut)+key+".txt"),"w") as file:
             for el in dict_mapping["Mapping"][ind,:]:
@@ -196,14 +202,16 @@ def write_indices_mapping(dict_molecules, dict_mapping, dist_cut = 2, output_pat
                     file.write(" ")
                     
 def mapping_Characteristics(dict_molecules, dict_mapping, dict_atom_type, do_dssp=True, do_sasa=True):
-    # Map to amino acids and amino acids type
+    # Map to amino acids, amino acids type, pLDDT, DSSP and SASA
     mapping_aa = np.zeros_like(dict_mapping["Mapping"],dtype="U25")
     mapping_pLDDT = np.zeros_like(dict_mapping["Mapping"],dtype="float64")
     mapping_DSSP = np.zeros_like(dict_mapping["Mapping"],dtype="U25")
     mapping_SASA = np.zeros_like(dict_mapping["Mapping"],dtype="float64")-1
-
+    
+    # Set counter
     count = 0
     
+    # Transfer molecule information to mapped indices
     for key, values in dict_molecules.items():
         mapping_aa[count,:] = np.asarray([values["Residues"][ind] if not ind == -1 else "XYZ" for ind in dict_mapping["Mapping"][count,:]])
         mapping_pLDDT[count,:] = np.asarray([values["pLDDT"][ind] if ind!=-1 else -1 for ind in dict_mapping["Mapping"][count,:]])
@@ -214,7 +222,7 @@ def mapping_Characteristics(dict_molecules, dict_mapping, dict_atom_type, do_dss
         if do_sasa:
             mapping_SASA[count,:] = np.asarray([values["SASA"][ind] if ind!=-1 else -1 for ind in dict_mapping["Mapping"][count,:]])
         count+=1
-    
+    # Update dictionary
     dict_mapping.update({"Amino Acid":mapping_aa,
                          "Amino Acid Type":np.vectorize(dict_atom_type.get)(mapping_aa),
                          "pLDDT":mapping_pLDDT,
@@ -225,27 +233,35 @@ def mapping_Characteristics(dict_molecules, dict_mapping, dict_atom_type, do_dss
     return dict_mapping
 
 def mapping_colors(dict_mapping, dict_colors, dict_molecules, reference, color_match = "#808B96", bad_color = "#D0D0D0", ligands_exist = False):
+    # Set dictionary for mapping to colors
     dict_mapping_colors = {}
     
-    # Discrete colors
+    ### Discrete colors ###
     for characteristic in ["Amino Acid","Amino Acid Type","DSSP"]:
+        # Set output arrays/lists
         mapping_at_col = np.zeros_like(dict_mapping["Mapping"],dtype="int64")
         colors_cmap = []
         key_list_colors = []
+        # Map to color scheme
         for ind,key in enumerate(dict_colors[characteristic]):
+            # Dicrete property
             mapping_at_col[dict_mapping[characteristic]==key] = ind
+            # Colormap
             colors_cmap.append(dict_colors[characteristic][key])
+            # Keys
             key_list_colors.append(key)
+        # Generate Colormap
         cmap_match = ListedColormap(colors_cmap)
+        # Update dictionary
         dict_mapping_colors.update({"Mapping "+characteristic:mapping_at_col,
                                     "Color keys "+characteristic:key_list_colors,
                                     "Colormap "+characteristic:cmap_match})
     
-        # Reduced Maps
+        ### Reduced Maps (Search for matching and non-matching residues w.r.t. reference) ###
         mapping_at_col_red = mapping_at_col.copy()
         colors_cmap_red = colors_cmap.copy()
         key_list_colors_red = key_list_colors.copy()
-        
+        # Get matching residues
         for i in range(1,len(mapping_at_col)):
             if characteristic == "Amino Acid Type":
                 mapping_at_col_red[i,np.where((mapping_at_col[i,:]-mapping_at_col[0,:]==0)&(mapping_at_col[i,:]!=7))] = 8
@@ -253,34 +269,52 @@ def mapping_colors(dict_mapping, dict_colors, dict_molecules, reference, color_m
                 mapping_at_col_red[i,np.where((mapping_at_col[i,:]-mapping_at_col[0,:]==0)&(mapping_at_col[i,:]!=20))] = 21
             elif characteristic == "DSSP":
                 mapping_at_col_red[i,np.where((mapping_at_col[i,:]-mapping_at_col[0,:]==0)&(mapping_at_col[i,:]!=3))] = 4
+        # Colormap
         colors_cmap_red.append(color_match)
+        # Keys
         key_list_colors_red.append("Match")
+        # Generate Colormap
         cmap_match_red = ListedColormap(colors_cmap_red)
+        # Update dictionary
         dict_mapping_colors.update({"Mapping "+characteristic+" reduced":mapping_at_col_red,
                                     "Color keys "+characteristic+" reduced":key_list_colors_red,
                                     "Colormap "+characteristic+" reduced":cmap_match_red})        
-    # Continuous colors
+    ### Continuous colors ###
     for characteristic in ["pLDDT","SASA"]:
+        # Get colormap
         cmap_masked = copy.copy(mpl.cm.get_cmap(dict_colors["Characteristic"][characteristic]))
+        # Mask non-mapping residues
         cmap_masked.set_under(bad_color)
+        # Update dictionary
         dict_mapping_colors.update({"Colormap "+characteristic:cmap_masked})
         
-    # Binary
+    ### Binary ###
+    # Get output array
     no_mutations = np.zeros(np.shape(dict_mapping["Mapping"])[1])
+    # Search for residues with no mutations (AA)
     no_mutations[np.where([True if (all(dict_mapping_colors["Mapping Amino Acid reduced"][1:,ind]>=20)) and not (all(dict_mapping_colors["Mapping Amino Acid reduced"][1:,ind]==20)) else False for ind in range(np.shape(dict_mapping["Mapping"])[1])])] = 1
+    # Remove overall non-mapping residues
     no_mutations[np.where([True if (all(dict_mapping_colors["Mapping Amino Acid reduced"][1:,ind]==20)) else False for ind in range(np.shape(dict_mapping["Mapping"])[1])])] = 2
+    # Get output array
     no_mutations_type = np.zeros(np.shape(dict_mapping["Mapping"])[1])
+    # Search for residues with no mutations (AA type)
     no_mutations_type[np.where([True if (all(dict_mapping_colors["Mapping Amino Acid Type reduced"][1:,ind]>=7)) and not (all(dict_mapping_colors["Mapping Amino Acid Type reduced"][1:,ind]==7)) else False for ind in range(np.shape(dict_mapping["Mapping"])[1])])] = 1
+    # Remove overall non-mapping residues
     no_mutations_type[np.where([True if (all(dict_mapping_colors["Mapping Amino Acid Type reduced"][1:,ind]==7)) else False for ind in range(np.shape(dict_mapping["Mapping"])[1])])] = 2    
+    # Generate colormap
     cmap_bin = ListedColormap([dict_colors["No Mutations"][ind] for ind in [0,1,2]])
+    # Update dictionary
     dict_mapping_colors.update({"No Mutations":no_mutations,
                                 "No Type Mutations":no_mutations_type,
                                 "Colormap No Mutations":cmap_bin,
                                 "Colormap No Type Mutations":cmap_bin})
     
+    # If ligands is present get mapping for binding site
     if ligands_exist:
         binding_site = np.zeros(np.shape(dict_mapping["Mapping"])[1])
+        # Check whether atoms located in reach of any ligand
         try:
+            # get binding site (indexing in pdb starts with 1 => -1)
             binding_site[dict_molecules[reference]["Ligand Indices"]-1]=1
         except:
             ligands_exist = False
@@ -291,20 +325,23 @@ def mapping_colors(dict_mapping, dict_colors, dict_molecules, reference, color_m
     return dict_mapping_colors, ligands_exist
 
 def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundaries, output_path=".", ligands_exist=True, do_plots_binding_site=False, dict_molecules=None, reference=None, fontsize=10):
-    
+    # Check whether input for binding site is provided
     if do_plots_binding_site and not (dict_molecules and reference):
         raise ValueError("dict_molecule and reference needed for plotting of binding site only.")
-    
+    # set width for plotting ratio
     if do_plots_binding_site:
         size_full = 100
     else:
         size_full = 20
     
+    # Check whether key exist
     if key not in ["Amino Acid","Amino Acid reduced","Amino Acid Type","Amino Acid Type reduced","DSSP","DSSP reduced","SASA","pLDDT"]:
         raise ValueError("Feature not known")
-
+    
+    # Setup figure
     fig = plt.figure()
     fig.set_size_inches(20,6)
+    # Set up layout w.r.t. binding site is known/exists
     if ligands_exist:
         spec = fig.add_gridspec(ncols=1, nrows=9, height_ratios=[len(dict_mapping["Mapping"]),1,1,1,1,1,1,1,1], hspace=0)
         axl = fig.add_subplot(spec[7, 0])
@@ -312,7 +349,7 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     else:
         spec = fig.add_gridspec(ncols=1, nrows=8, height_ratios=[len(dict_mapping["Mapping"]),1,1,1,1,1,1,1], hspace=0)
         ax6 = fig.add_subplot(spec[7, 0])
-        
+    # Generate additional (summary) axes
     ax = fig.add_subplot(spec[0, 0])
     ax1 = fig.add_subplot(spec[2, 0])
     ax2 = fig.add_subplot(spec[3, 0])
@@ -320,6 +357,7 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     ax4 = fig.add_subplot(spec[5, 0])
     ax5 = fig.add_subplot(spec[6, 0])
     
+    # Plot main figure
     if key in ["Amino Acid","Amino Acid reduced","Amino Acid Type","Amino Acid Type reduced","DSSP","DSSP reduced"]:
         if do_plots_binding_site:
             im = ax.matshow(dict_mapping_colors["Mapping "+key][:,dict_molecules[reference]["Ligand Indices"]-1], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])
@@ -330,14 +368,14 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
             im = ax.matshow(dict_mapping[key][:,dict_molecules[reference]["Ligand Indices"]-1], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])            
         else:
             im = ax.matshow(dict_mapping[key], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])
-    
+    # Layout main figure
     ax.set_yticks(np.arange(len(dict_mapping["Keys"])))
     ax.set_yticklabels(dict_mapping["Keys"],fontsize=fontsize)
     if do_plots_binding_site:
         ax.set_xticks(np.arange(10,np.shape(dict_molecules[reference]["Ligand Indices"])[0],10))        
     else:
         ax.set_xticks(np.arange(50,np.shape(dict_mapping["Mapping"])[1],50))
-
+    # Plot subfigures including layout
     key_s = "pLDDT"
     if do_plots_binding_site:
         ax1.matshow(dict_mapping[key_s][0,dict_molecules[reference]["Ligand Indices"]-1].reshape(1,-1), cmap = dict_mapping_colors["Colormap "+key_s], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key_s][0], vmax=dict_boundaries[key_s][1])        
@@ -417,7 +455,9 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     plt.close()
 
 def write_output(dict_molecules,dict_mapping,dict_mapping_colors, reference, output_path_data="."):
+    # Merge all dictionaries into one
     dict_full = {"Molecules":dict_molecules,
                  "Mapping":dict_mapping,
                  "Mapping Colors":dict_mapping_colors}
+    # Save dictonary to file
     pickle.dump(dict_full, open(os.path.join(output_path_data,reference+".pkl"),"wb"))
