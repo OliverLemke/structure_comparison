@@ -19,18 +19,18 @@ def get_dictionaries():
                       "ALA":"Apolar","VAL":"Apolar","LEU":"Apolar","ILE":"Apolar","MET":"Apolar",
                       "PRO":"Break",
                       "GLY":"Flexible",
-                      "XYZ":"NoMatch"}
+                      "XYZ":"NoMap"}
     
     ## Colors
     dict_colors = {"Amino Acid":
-                       {"LYS":"#154360","ARG":"#21618C","HIS":"#5499C7",
-                        "GLU":"#641E16","ASP":"#CB4335",
-                        "TRP":"#145A32","PHE":"#239B56","TYR":"#52BE80",
-                        "THR":"#4A235A","SER":"#6C3483","CYS":"#9B59B6","GLN":"#C39BD3","ASN":"#D2B4DE",
-                        "ALA":"#B9770E","VAL":"#D68910","LEU":"#F4D03F","ILE":"#F1C40F","MET":"#D4AC0D",
-                        "PRO":"#1C2833",
-                        "GLY":"#85929E",
-                        "XYZ":"#D0D0D0"},
+                       {"LYS":"#154360","ARG":"#21618C","HIS":"#5499C7",                                    #Blue
+                        "GLU":"#641E16","ASP":"#CB4335",                                                    #Red
+                        "TRP":"#145A32","PHE":"#239B56","TYR":"#52BE80",                                    #Green
+                        "THR":"#4A235A","SER":"#6C3483","CYS":"#9B59B6","GLN":"#C39BD3","ASN":"#D2B4DE",    #Violet
+                        "ALA":"#B9770E","VAL":"#D68910","LEU":"#F4D03F","ILE":"#F1C40F","MET":"#D4AC0D",    #Yellow/Orange
+                        "PRO":"#1C2833",                                                                    #Black
+                        "GLY":"#F0F3F4",                                                                    #Light Gray
+                        "XYZ":"#D0D0D0"},                                                                   #Gray
                    "Amino Acid Type":
                        {"Basic":"#3498DB",        #Blue
                         "Acidic":"#C0392B",       #Red    
@@ -39,19 +39,19 @@ def get_dictionaries():
                         "Apolar":"#E67E22",       #Orange
                         "Break":"#212F3D",        #Dark
                         "Flexible":"#F7DC6F",     #Yellow
-                        "NoMatch":"#D0D0D0"},     #Gray
+                        "NoMap":"#D0D0D0"},       #Gray
                    "DSSP":
                        {"E":"C3",                 #Red
                         "H":"C0",                 #Blue
                         "C":"C8",                 #Yellow
-                        "NoMatch":"#D0D0D0"},     #Gray
+                        "NoMap":"#D0D0D0"},       #Gray
                    "Binding Site":
                        {0:"w",
                         1:"k"},
                    "No Mutations":
                        {0:"w",
                         1:"k",
-                        2:"#D0D0D0"},
+                        2:"#D0D0D0"},             #Gray
                     "Characteristic":
                         {"pLDDT":"RdPu",
                          "SASA":"Blues"}}
