@@ -216,9 +216,9 @@ def mapping_Characteristics(dict_molecules, dict_mapping, dict_atom_type, do_dss
         mapping_aa[count,:] = np.asarray([values["Residues"][ind] if not ind == -1 else "XYZ" for ind in dict_mapping["Mapping"][count,:]])
         mapping_pLDDT[count,:] = np.asarray([values["pLDDT"][ind] if ind!=-1 else -1 for ind in dict_mapping["Mapping"][count,:]])
         if do_dssp:
-            mapping_DSSP[count,:] = np.asarray([values["DSSP"][ind] if ind!=-1 else "NoMatch" for ind in dict_mapping["Mapping"][count,:]])
+            mapping_DSSP[count,:] = np.asarray([values["DSSP"][ind] if ind!=-1 else "NoMap" for ind in dict_mapping["Mapping"][count,:]])
         else:
-            mapping_DSSP[count,:] = np.asarray(["NoMatch"]*len(dict_mapping["Mapping"][count,:]))
+            mapping_DSSP[count,:] = np.asarray(["NoMap"]*len(dict_mapping["Mapping"][count,:]))
         if do_sasa:
             mapping_SASA[count,:] = np.asarray([values["SASA"][ind] if ind!=-1 else -1 for ind in dict_mapping["Mapping"][count,:]])
         count+=1
