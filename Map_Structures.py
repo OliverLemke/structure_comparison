@@ -22,7 +22,7 @@ import pickle
 ###############
 
 ### Add docstring
-### Add comments
+### Add Plotting indices (manual indices in reference) for subplots (like binding site)
 ### Separate functions from script (for one index and for multiple indices)
 
 def get_Input(file_setup, ligand_setup=[], initial_path_proteins = ".", initial_path_ligands = ".", index = 0):
@@ -146,7 +146,7 @@ def get_indices_residues_ligands(dict_molecules, ligands, dist_cut_lig = 5, k = 
         mapping_lig = []
         # Check for neighboring w.r.t. ligands
         for item in ligands: 
-            neighbor = tree_lig.query(item, k=k, distance_upper_bound = dist_cut_lig)
+            neighbor = tree_lig.query(item, k = k, distance_upper_bound = dist_cut_lig) ####test query_ball_point (removes k) or query_ball_tree (maybe faster)
             mapping_lig.append(neighbor[1][neighbor[0]!=np.inf])
         # Get unique neighbors
         mapping_lig = np.asarray(np.unique([el for cluster in mapping_lig for el in cluster]))
@@ -324,7 +324,7 @@ def mapping_colors(dict_mapping, dict_colors, dict_molecules, reference, color_m
     
     return dict_mapping_colors, ligands_exist
 
-def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundaries, output_path=".", ligands_exist=True, do_plots_binding_site=False, dict_molecules=None, reference=None, fontsize=10):
+def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundaries, output_path=".", ligands_exist=True, do_plots_binding_site=False, dict_molecules=None, reference=None, fontsize=10, keys_ordered = None):
     # Check whether input for binding site is provided
     if do_plots_binding_site and not (dict_molecules and reference):
         raise ValueError("dict_molecule and reference needed for plotting of binding site only.")
@@ -333,6 +333,11 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
         size_full = 100
     else:
         size_full = 20
+        
+    if keys_ordered:
+        order = [dict_mapping["Keys"].index(key) for key in keys_ordered]
+    else:
+        order = list(range(len(dict_mapping["Keys"])))
     
     # Check whether key exist
     if key not in ["Amino Acid","Amino Acid reduced","Amino Acid Type","Amino Acid Type reduced","DSSP","DSSP reduced","SASA","pLDDT"]:
@@ -360,17 +365,17 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     # Plot main figure
     if key in ["Amino Acid","Amino Acid reduced","Amino Acid Type","Amino Acid Type reduced","DSSP","DSSP reduced"]:
         if do_plots_binding_site:
-            im = ax.matshow(dict_mapping_colors["Mapping "+key][:,dict_molecules[reference]["Ligand Indices"]-1], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])
+            im = ax.matshow(dict_mapping_colors["Mapping "+key][order][:,dict_molecules[reference]["Ligand Indices"]-1], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])
         else:
-            im = ax.matshow(dict_mapping_colors["Mapping "+key], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])
+            im = ax.matshow(dict_mapping_colors["Mapping "+key][order], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])
     else:
         if do_plots_binding_site:
-            im = ax.matshow(dict_mapping[key][:,dict_molecules[reference]["Ligand Indices"]-1], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])            
+            im = ax.matshow(dict_mapping[key][order][:,dict_molecules[reference]["Ligand Indices"]-1], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])            
         else:
-            im = ax.matshow(dict_mapping[key], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])
+            im = ax.matshow(dict_mapping[key][order], cmap = dict_mapping_colors["Colormap "+key], aspect = np.shape(dict_mapping["Mapping"])[1]/size_full, vmin=dict_boundaries[key][0], vmax=dict_boundaries[key][1])
     # Layout main figure
     ax.set_yticks(np.arange(len(dict_mapping["Keys"])))
-    ax.set_yticklabels(dict_mapping["Keys"],fontsize=fontsize)
+    ax.set_yticklabels([dict_mapping["Keys"][label] for label in order],fontsize=fontsize)
     if do_plots_binding_site:
         ax.set_xticks(np.arange(10,np.shape(dict_molecules[reference]["Ligand Indices"])[0],10))        
     else:
