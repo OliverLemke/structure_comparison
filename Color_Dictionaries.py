@@ -79,7 +79,28 @@ def get_dictionaries():
                        "Binding Site":[0,1],                    # Present or absent
                        "No Mutations":[0,2],                    # Present, absent or NoMap
                        "No Type Mutations":[0,2]}               # Present, absent or NoMap
+                       
+    dict_amino_acids = {"ALA":"A",
+                        "CYS":"C",
+                        "ASP":"D",
+                        "GLU":"E",
+                        "PHE":"F",
+                        "GLY":"G",
+                        "HIS":"H",
+                        "ILE":"I",
+                        "LYS":"K",
+                        "LEU":"L",
+                        "MET":"M",
+                        "ASN":"N",
+                        "PRO":"P",
+                        "GLN":"Q",
+                        "ARG":"R",
+                        "SER":"S",
+                        "THR":"T",
+                        "VAL":"V",
+                        "TRP":"W",
+                        "TYR":"Y"}
     
-    return dict_atom_type, dict_colors, dict_boundaries
+    return dict_atom_type, dict_colors, dict_boundaries, dict_amino_acids
     
 
