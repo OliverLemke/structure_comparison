@@ -5,16 +5,18 @@
 """
 
 import re
+import os
+import copy
+import pickle
 import numpy as np
 import pandas as pd
 import scipy.spatial
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import matplotlib as mpl
-import copy
 import mdtraj as md
-import os
-import pickle
+import igraph as ig
+import leidenalg as la
 
 #%%
 ###############
@@ -459,10 +461,112 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
         plt.savefig(os.path.join(output_path,"FIG_"+key.replace(" ","_")+".png"), bbox_inches="tight")
     plt.close()
 
-def write_output(dict_molecules,dict_mapping,dict_mapping_colors, reference, output_path_data="."):
+def write_output(dict_molecules, dict_mapping, dict_mapping_colors, reference, output_path_data="."):
     # Merge all dictionaries into one
     dict_full = {"Molecules":dict_molecules,
                  "Mapping":dict_mapping,
                  "Mapping Colors":dict_mapping_colors}
     # Save dictonary to file
     pickle.dump(dict_full, open(os.path.join(output_path_data,reference+".pkl"),"wb"))
+
+
+###### Test
+
+def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = "No Mutations", dist_cut=10, seed=42, output_path=".", write_vmd=False, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure", files_proteins=None):
+    
+    if key not in ["No Mutations","No Type Mutations","Binding Site"]:
+        raise ValueError("key not found.")
+
+    # Extract selection
+    selection = dict_mapping_colors[key]
+
+    # Extract CA-coordinates for reference
+    c_alpha = dict_molecules[reference]["C_alpha"]
+
+    # remove all with mutations
+    indices = [ind for ind in range(len(c_alpha)) if selection[ind]==1]
+    c_alpha_red = [c_alpha[ind] for ind in indices]
+
+    # Set up graph for clustering
+    G = get_Graph_network(indices, coordinates=c_alpha_red, dist_cut=dist_cut)
+
+    # Leiden clustering
+    cluster_list, labels = cluster_Network(G, seed=seed)
+    
+    # Plot graph
+    plot_clustered_network(G, labels, output_path=output_path)
+
+    # Get indices for molecules
+    indices_mol = [[ind for ind in range(len(c_alpha)) if selection[ind]!=1]]+[[indices[i] for i in item] for item in cluster_list]
+    labels_mol = np.zeros(len(c_alpha))
+    for ind,cluster in enumerate(indices_mol):
+        labels_mol[cluster] = ind
+
+    # Write .tcl
+    if write_vmd and files_proteins:
+        # Get file name for reference structure
+        file_name = files_proteins[0]
+        # Write VMD file to disc
+        write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_path_vmd=output_path_vmd, file_name_tcl=file_name_tcl, vmd_out=vmd_out)
+
+def get_Graph_network(indices, coordinates, dist_cut=10):
+    G = ig.Graph()
+    G.add_vertices(len(indices))
+
+    # Calculate distances (Tree)
+    tree = scipy.spatial.cKDTree(coordinates)
+    neighbors = []
+    # Get neighbors
+    for atom_coord in coordinates:
+        neighbors.append(tree.query_ball_point(atom_coord,dist_cut))
+    # Get edges
+    # j>i Removes duplicates and diagonal Elements
+    edges = [(i,j) for i in range(len(neighbors)) for j in neighbors[i] if j>i]
+    # Add edges based on cutoff
+    G.add_edges(edges)
+    return G
+
+def cluster_Network(G, seed=42):
+    # Get partition
+    partition = la.find_partition(G, la.CPMVertexPartition, seed=seed, resolution_parameter=0.05)
+    # Extract labels
+    labels = partition.membership
+    # Convert labels to list
+    cluster_list = [np.where(labels==label)[0] for label in np.unique(labels)]  
+    return cluster_list, labels
+
+def plot_clustered_network(G, labels, output_path):
+    # Get colormap
+    cmap = mpl.cm.get_cmap('jet_r')
+    # Get discrete colors
+    colors_to_choose = np.linspace(0+1/len(set(labels)),1,len(set(labels)))
+    colors = [cmap(el) for el in colors_to_choose]
+    
+    # Plot
+    fig, ax = plt.subplots()
+    ig.plot(G, layout=G.layout_kamada_kawai(), target=ax, vertex_color = [colors[cluster] for cluster in labels])
+    plt.axis("off")
+    plt.savefig(os.path.join(output_path,"clustered_network.png"), bbox_inches="tight")
+    
+def write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure"):
+    with open (os.path.join(output_path_vmd,file_name_tcl),"w") as file:
+        file.write("# Use for GUI: vmd -e %s\n"%file_name_tcl)
+        file.write("# Use for pipeline w/o GUI: vmd -dispdev text -eofexit < %s\n"%file_name_tcl)
+        file.write("\n")
+        file.write("display backgroundgradient off\naxes location off\ndisplay depthcue off\ndisplay update on")
+        file.write("color add item Display Background black\ncolor Display Background black\ncolor scale method RGB\ncolor scale midpoint 0.50\ncolor scale min 0.00\n")
+        file.write("mol default material AOEdgy\nmol default style NewCartoon\nmol default selection {all}\nmol default color Beta\n")
+        file.write("\n")
+        file.write("mol new "+file_name.replace(" ","\ ")+"\n")
+        file.write("set full [atomselect top protein]\n")
+        file.write("$full set beta {")
+        for index in dict_molecules[reference]["Indices"]:
+            file.write("%d "%labels_mol[index-1])
+        file.write("}\n")
+        file.write("\n")
+        file.write("set color_start [colorinfo num]\ncolor change RGB [expr $color_start +0] 1 1 1\ndisplay resize\n")
+        file.write("\n")
+        file.write("set outname %s\n"%os.path.join(output_path_vmd,vmd_out))
+        file.write("render TachyonInternal ${outname}_Z.tga\nrotate x by 90 degrees\nrender TachyonInternal ${outname}_Y.tga\nrotate y by 270 degrees\nrender TachyonInternal ${outname}_X.tga\n")
+        file.write("\n")
+        file.write("# For high resolution use in TK console:\n# render TachyonInternal ${outname}_high_res.tga")
