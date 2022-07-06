@@ -99,7 +99,8 @@ def get_dictionaries():
                         "THR":"T",
                         "VAL":"V",
                         "TRP":"W",
-                        "TYR":"Y"}
+                        "TYR":"Y",
+                        "XYZ":"-"}
     
     return dict_atom_type, dict_colors, dict_boundaries, dict_amino_acids
     
