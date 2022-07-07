@@ -570,3 +570,11 @@ def write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_pa
         file.write("render TachyonInternal ${outname}_Z.tga\nrotate x by 90 degrees\nrender TachyonInternal ${outname}_Y.tga\nrotate y by 270 degrees\nrender TachyonInternal ${outname}_X.tga\n")
         file.write("\n")
         file.write("# For high resolution use in TK console:\n# render TachyonInternal ${outname}_high_res.tga")
+
+def write_Structural_MSA(dict_mapping, dict_amino_acids,  output_path=".", output_name="Structural_MSA.FASTA"):
+    with open(os.path.join(output_path,output_name),"w") as file:
+        for ind,key in enumerate(dict_mapping["Keys"]):
+            file.write(">"+key+"\n")
+            for item in dict_mapping["Amino Acid"][ind,:]:
+                file.write(dict_amino_acids[item])
+            file.write("\n")
