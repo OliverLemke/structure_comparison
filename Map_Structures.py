@@ -52,9 +52,9 @@ def get_Input(file_setup, ligand_setup=[], initial_path_proteins = ".", initial_
     reference : str
         Reference file.
     files_proteins : list of str
-        list of all protein structures.
+        List of all protein structures.
     files_ligands : list of str
-        list of all ligand structures.
+        List of all ligand structures.
     ligands_exist : bool
         True if at least one ligand exists.
 
@@ -94,6 +94,22 @@ def get_Input(file_setup, ligand_setup=[], initial_path_proteins = ".", initial_
     return group, identifier, reference, files_proteins, files_ligands, ligands_exist
 
 def get_Dictionary_Molecules(reference, files_proteins):
+    """
+    
+
+    Parameters
+    ----------
+    reference : str
+        Reference file.
+    files_proteins : list of str
+        List of all protein structures.
+
+    Returns
+    -------
+    dict_molecules : dict
+        Dictonary containing structural properties.
+
+    """
     # Define Dictonary    
     dict_molecules = {reference:[]}
     
@@ -107,6 +123,28 @@ def get_Dictionary_Molecules(reference, files_proteins):
                                 
 
 def get_Dictionary_Molecular_Analysis(reference, files_proteins, dict_molecules, do_dssp=True, do_sasa=True):
+    """
+    Update molecule dictionary for structural features
+
+    Parameters
+    ----------
+    reference : str
+        Reference file.
+    files_proteins : list of str
+        List of all protein structures.
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    do_dssp : bool, optional
+        Perform secondary structure prediction. The default is True.
+    do_sasa : TYPE, optional
+        Perform accessible surface area prediction. The default is True.
+
+    Returns
+    -------
+    dict_molecules : dict
+        Dictonary containing structural properties updated for structural features.
+
+    """
     for file in files_proteins:
         # Generate key
         mol = re.search(r"/[0-9A-Za-z_\-]+\.pdb",file).group(0)[1:-4]
@@ -123,6 +161,21 @@ def get_Dictionary_Molecular_Analysis(reference, files_proteins, dict_molecules,
     return dict_molecules
 
 def get_Dictionary_Proteins(reference, dict_molecules):
+    """
+    Update dictionary for selections of atoms.
+
+    Parameters
+    ----------
+    reference : str
+        Reference file.
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    Returns
+    -------
+    dict_molecules : dict
+        Dictonary containing structural properties updated for selections.
+
+    """
     for key, file in dict_molecules.items():
         # Create empty lists for different properties/atom types
         c_alpha = []
@@ -158,6 +211,26 @@ def get_Dictionary_Proteins(reference, dict_molecules):
     return dict_molecules
 
 def get_ligands(files_ligands, ligands_to_be_excluded, ligands_exist=True):
+    """
+    Extract ligand coordinates from file.
+
+    Parameters
+    ----------
+    files_ligands : list of str
+        List of all ligand structures.
+    ligands_to_be_excluded : list of str
+        List of ligands to be excluded.
+    ligands_exist : bool
+        True if at least one ligand exists. The default is True.
+
+    Returns
+    -------
+    ligands : list of arr
+        Ligand coordinates.
+    ligands_exist : bool
+        True if ligands still exist after filtering.
+
+    """
     # Create empty list
     ligands = [] 
     for file in files_ligands:
@@ -173,6 +246,26 @@ def get_ligands(files_ligands, ligands_to_be_excluded, ligands_exist=True):
     return ligands, ligands_exist
 
 def get_indices_residues_ligands(dict_molecules, ligands, dist_cut_lig = 5, k = 100):
+    """
+    Get residue indices for residues in close contact to ligands. Updates dict_molecules.
+
+    Parameters
+    ----------
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    ligands : list of arr
+        Ligand coordinates.
+    dist_cut_lig : float, optional
+        Distance cutoff for neighbor detection. The default is 5.
+    k : int, optional
+        Number of nearest neighbors to be detected. The default is 100.
+
+    Returns
+    -------
+    dict_molecules : dict
+        Dictonary containing protein properties updated for residues close to ligands.
+
+    """
     for key, file in dict_molecules.items():
         # Setup tree for protein
         tree_lig = scipy.spatial.cKDTree(file["Coordinates"]) 
@@ -190,6 +283,24 @@ def get_indices_residues_ligands(dict_molecules, ligands, dist_cut_lig = 5, k = 
     return dict_molecules
 
 def mapping_Proteins(dict_molecules, reference, dist_cut = 2):
+    """
+    Maps structures onto the reference structure (1:1 Assignment).
+
+    Parameters
+    ----------
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    reference : str
+        Reference file.
+    dist_cut : float, optional
+        Distance cutoff for mapping. The default is 2.
+
+    Returns
+    -------
+    dict_mapping : dict
+        Dictionary containg all mapping information with respect to the reference structure.
+
+    """
     # Set reference
     ref = dict_molecules[reference]["C_alpha"]
     keys_list = [reference]
@@ -226,6 +337,25 @@ def mapping_Proteins(dict_molecules, reference, dist_cut = 2):
     return dict_mapping
 
 def write_indices_mapping(dict_molecules, dict_mapping, dist_cut = 2, output_path_data = "."):
+    """
+    Writes mapping indices to disc for external use.
+
+    Parameters
+    ----------
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    dict_mapping : dict
+        Dictionary containg all mapping information with respect to the reference structure.
+    dist_cut : float, optional
+        Distance cutoff for mapping. The default is 2.
+    output_path_data : str, optional
+        Output path for the written file. The default is ".".
+
+    Returns
+    -------
+    None.
+
+    """
     # Write indices for mapping to file for plotting
     for ind,key in enumerate(dict_molecules.keys()):
         with open(os.path.join(output_path_data, "indices_mapping_{:.2f}_".format(dist_cut)+key+".txt"),"w") as file:
@@ -235,6 +365,28 @@ def write_indices_mapping(dict_molecules, dict_mapping, dist_cut = 2, output_pat
                     file.write(" ")
                     
 def mapping_Characteristics(dict_molecules, dict_mapping, dict_atom_type, do_dssp=True, do_sasa=True):
+    """
+    Maps characteristics of the protein structures to the reference.
+
+    Parameters
+    ----------
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    dict_mapping : dict
+        Dictionary containg all mapping information with respect to the reference structure.
+    dict_atom_type : dict
+         Assignment of each amino acid to a property.
+    do_dssp : bool, optional
+        True if secondary structure prediction was performed. The default is True.
+    do_sasa : TYPE, optional
+        True if accessible surface area prediction was performed. The default is True.
+
+    Returns
+    -------
+    dict_mapping : dict
+        Dictionary containg all mapping information with respect to the reference structure updated for structure characteristcs.
+
+    """
     # Map to amino acids, amino acids type, pLDDT, DSSP and SASA
     mapping_aa = np.zeros_like(dict_mapping["Mapping"],dtype="U25")
     mapping_pLDDT = np.zeros_like(dict_mapping["Mapping"],dtype="float64")
@@ -266,6 +418,34 @@ def mapping_Characteristics(dict_molecules, dict_mapping, dict_atom_type, do_dss
     return dict_mapping
 
 def mapping_colors(dict_mapping, dict_colors, dict_molecules, reference, color_match = "#808B96", bad_color = "#D0D0D0", ligands_exist = False):
+    """
+    
+
+    Parameters
+    ----------
+    dict_mapping : dict
+        Dictionary containg all mapping information with respect to the reference structure.
+    dict_colors : dict
+        Colors for amino acids, amino acid types, DSSP, Binding site, Mutation sites. Colormaps for SASA and pLDDT.
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    reference : str
+        Reference file.
+    color_match : str, optional
+        Hex color code for matching amino acids. The default is "#808B96".
+    bad_color : str, optional
+        Hex color code for not mapping amino acids. The default is "#D0D0D0".
+    ligands_exist : bool, optional
+        True if at least one ligand exists. The default is False.
+
+    Returns
+    -------
+    dict_mapping_colors : dict
+        Dictionary containg colors for mapping.
+    ligands_exist : bool
+        True if at least one ligand exists that could be mapped to the protein.
+
+    """
     # Set dictionary for mapping to colors
     dict_mapping_colors = {}
     
@@ -358,6 +538,39 @@ def mapping_colors(dict_mapping, dict_colors, dict_molecules, reference, color_m
     return dict_mapping_colors, ligands_exist
 
 def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundaries, output_path=".", ligands_exist=True, do_plots_binding_site=False, dict_molecules=None, reference=None, fontsize=10, keys_ordered = None):
+    """
+    Plots a comparison for selected features.
+
+    Parameters
+    ----------
+    key : str
+        Feature to be plotted: ["Amino Acid","Amino Acid reduced","Amino Acid Type","Amino Acid Type reduced","DSSP","DSSP reduced","SASA","pLDDT"].
+    dict_mapping : dict
+        Dictionary containg all mapping information with respect to the reference structure.
+    dict_mapping_colors : dict
+        Dictionary containg colors for mapping.
+    dict_boundaries : dict
+        Boundaries for every key. Suffix "reduced" introduces a color for consistency between all structures.
+    output_path : str, optional
+        Path for data ouput. The default is ".".
+    ligands_exist : bool, optional
+        True if ligand exist. The default is True.
+    do_plots_binding_site : bool, optional
+        Plot only the binding site instead of all residues. The default is False.
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    reference : str
+        Reference file.
+    fontsize : int, optional
+        Font size for plot. The default is 10.
+    keys_ordered : list of str, optional
+        Ordering of keys if needed. The default is None.
+
+    Returns
+    -------
+    None.
+
+    """
     # Check whether input for binding site is provided
     if do_plots_binding_site and not (dict_molecules and reference):
         raise ValueError("dict_molecule and reference needed for plotting of binding site only.")
@@ -493,6 +706,27 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     plt.close()
 
 def write_output(dict_molecules, dict_mapping, dict_mapping_colors, reference, output_path_data="."):
+    """
+    Saves all dictionaries to file.
+
+    Parameters
+    ----------
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    dict_mapping : dict
+        Dictionary containg all mapping information with respect to the reference structure.
+    dict_mapping_colors : dict
+        Dictionary containg colors for mapping.
+    reference : str
+        Reference file.
+    output_path_data : str, optional
+        Output path for the data written to dsic. The default is ".".
+
+    Returns
+    -------
+    None.
+
+    """
     # Merge all dictionaries into one
     dict_full = {"Molecules":dict_molecules,
                  "Mapping":dict_mapping,
@@ -501,7 +735,42 @@ def write_output(dict_molecules, dict_mapping, dict_mapping_colors, reference, o
     pickle.dump(dict_full, open(os.path.join(output_path_data,reference+".pkl"),"wb"))
 
 def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = "No Mutations", dist_cut=10, seed=42, output_path=".", write_vmd=False, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure", files_proteins=None):
-    
+    """
+    Constructs and clusters the residues network for conserved amino acids.
+
+    Parameters
+    ----------
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    dict_mapping : dict
+        Dictionary containg all mapping information with respect to the reference structure.
+    reference : str
+        Reference file.
+    key : str, optional
+        Selection of residues to be clustered:  ["No Mutations","No Type Mutations","Binding Site"]. The default is "No Mutations".
+    dist_cut : float, optional
+        Distance cutoff for network construction. The default is 10.
+    seed : int, optional
+        Seed used for clustering. The default is 42.
+    output_path : str, optional
+        Output path for the data written to dsic. The default is ".".
+    write_vmd : bool, optional
+        True if VMD input should be written. The default is False.
+    output_path_vmd : str, optional
+        Output path for the VMD input. The default is ".".
+    file_name_tcl : str, optional
+        Name of the file for the VMD input. The default is "out_vmd.tcl".
+    vmd_out : str, optional
+        Name of the VMD output. The default is "Structure".
+    files_proteins : list of str
+        List of all protein structures.
+
+    Returns
+    -------
+    labels_mol : list of int
+        Assignment of residues to clusters. 0 denotes residues not used for network construction.
+
+    """
     if key not in ["No Mutations","No Type Mutations","Binding Site"]:
         raise ValueError("key not found.")
 
@@ -536,9 +805,27 @@ def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = 
         file_name = files_proteins[0]
         # Write VMD file to disc
         write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_path_vmd=output_path_vmd, file_name_tcl=file_name_tcl, vmd_out=vmd_out)
-    return cluster_list, labels
+    return labels_mol
     
 def get_Graph_network(indices, coordinates, dist_cut=10):
+    """
+    Generates the network graph.
+
+    Parameters
+    ----------
+    indices : list of int
+        Indices for residue selection.
+    coordinates : list of arr
+        Positions of selected atoms.
+    dist_cut : float, optional
+        Distance cutoff for network construction. The default is 10.
+
+    Returns
+    -------
+    G : obj
+        Network graph generated with igraph.
+
+    """
     G = ig.Graph()
     G.add_vertices(len(indices))
 
@@ -556,6 +843,24 @@ def get_Graph_network(indices, coordinates, dist_cut=10):
     return G
 
 def cluster_Network(G, seed=42):
+    """
+    Clusters network using the Leiden algorithm.
+
+    Parameters
+    ----------
+    G : obj
+        Network graph generated with igraph.
+    seed : int, optional
+        Seed used for clustering. The default is 42.
+        
+    Returns
+    -------
+    cluster_list : list of arr
+        list of arrays containg indices of residues belonging to the respective cluster.
+    labels : list of int
+        Assignment of residues to clusters for atoms used in network construction.
+
+    """
     # Get partition
     partition = la.find_partition(G, la.CPMVertexPartition, seed=seed, resolution_parameter=0.05)
 
@@ -565,7 +870,24 @@ def cluster_Network(G, seed=42):
     cluster_list = [np.where(labels==label)[0] for label in np.unique(labels)]  
     return cluster_list, labels
 
-def plot_clustered_network(G, labels, output_path):
+def plot_clustered_network(G, labels, output_path="."):
+    """
+    Plot the clustered network.
+
+    Parameters
+    ----------
+    G : obj
+        Network graph generated with igraph.
+    labels : list of int
+        Assignment of residues to clusters for atoms used in network construction.
+    output_path : str, optional
+        Path for data ouput. The default is ".".
+
+    Returns
+    -------
+    None.
+
+    """
     # Get colormap
     cmap = mpl.cm.get_cmap('jet_r')
     # Get discrete colors
@@ -579,6 +901,31 @@ def plot_clustered_network(G, labels, output_path):
     plt.savefig(os.path.join(output_path,"clustered_network.png"), bbox_inches="tight")
     
 def write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure"):
+    """
+    Writes VMD output for automated structure view generation.
+
+    Parameters
+    ----------
+    dict_molecules : dict
+        Dictonary containing structural properties.
+    reference : str
+        Reference file.
+    labels_mol : list of int
+        Assignment of residues to clusters. 0 denotes residues not used for network construction.
+    file_name : str
+        File name for the reference structure.
+    output_path_vmd : str, optional
+        Output path for the VMD input. The default is ".".
+    file_name_tcl : str, optional
+        Name of the file for the VMD input. The default is
+    vmd_out : str, optional
+        Name of the VMD output. The default is "Structure".
+
+    Returns
+    -------
+    None.
+
+    """
     with open (os.path.join(output_path_vmd,file_name_tcl),"w") as file:
         file.write("# Use for GUI: vmd -e %s\n"%file_name_tcl)
         file.write("# Use for pipeline w/o GUI: vmd -dispdev text -eofexit < %s\n"%file_name_tcl)
@@ -602,6 +949,25 @@ def write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_pa
         file.write("# For high resolution use in TK console:\n# render TachyonInternal ${outname}_high_res.tga")
 
 def write_Structural_MSA(dict_mapping, dict_amino_acids,  output_path=".", output_name="Structural_MSA.FASTA"):
+    """
+    Generates FASTA output for structural alignment.
+
+    Parameters
+    ----------
+    dict_mapping : dict
+        Dictionary containg all mapping information with respect to the reference structure.
+    dict_amino_acids : dict
+        3-Letter to 1-Letter amino acid translation.
+    output_path : str, optional
+        Output path for the data written to dsic. The default is ".".
+    output_name : str, optional
+        Name of the output. The default is "Structural_MSA.FASTA".
+
+    Returns
+    -------
+    None.
+
+    """
     with open(os.path.join(output_path,output_name),"w") as file:
         for ind,key in enumerate(dict_mapping["Keys"]):
             file.write(">"+key+"\n")
