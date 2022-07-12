@@ -25,11 +25,42 @@ import leidenalg as la
 
 ### Add docstring
 ### Add Plotting indices (manual indices in reference) for subplots (like binding site)
-### Separate functions from script (for one index and for multiple indices)
 
 def get_Input(file_setup, ligand_setup=[], initial_path_proteins = ".", initial_path_ligands = ".", index = 0):
+    """
+    Generates Input for all other functions and automatisation. Examples for file_setup and ligand_setup will be added later.
+
+    Parameters
+    ----------
+    file_setup : pd.DataFrame
+        DataFrame containing the idnetifier, the reference structure files and all related structure files.
+    ligand_setup : pd.DataFrame, optional
+        DataFrame containing ligand structures fitted to the reference. The default is [].
+    initial_path_proteins : str, optional
+        Path for protein structure files. The default is ".".
+    initial_path_ligands : str, optional
+        Path for ligand structure files. The default is ".".
+    index : int, optional
+        Index for the row in file_setup used for analysis. The default is 0.
+
+    Returns
+    -------
+    group : str
+        Group name.
+    identifier : str
+        Identifier for the group.
+    reference : str
+        Reference file.
+    files_proteins : list of str
+        list of all protein structures.
+    files_ligands : list of str
+        list of all ligand structures.
+    ligands_exist : bool
+        True if at least one ligand exists.
+
+    """
     # Get Orthogroup
-    orthogroup = file_setup.loc[index,"Orthogroup"]
+    group = file_setup.loc[index,"Orthogroup"]
     # Get Identifier
     identifier = file_setup.loc[index,"New directory"]
     # Get Path Proteins
@@ -60,7 +91,7 @@ def get_Input(file_setup, ligand_setup=[], initial_path_proteins = ".", initial_
         ligands_exist = False
         # Return empty list (skip some analysis later on)
         files_ligands = []
-    return orthogroup, identifier, reference, files_proteins, files_ligands, ligands_exist
+    return group, identifier, reference, files_proteins, files_ligands, ligands_exist
 
 def get_Dictionary_Molecules(reference, files_proteins):
     # Define Dictonary    
@@ -469,9 +500,6 @@ def write_output(dict_molecules, dict_mapping, dict_mapping_colors, reference, o
     # Save dictonary to file
     pickle.dump(dict_full, open(os.path.join(output_path_data,reference+".pkl"),"wb"))
 
-
-###### Test
-
 def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = "No Mutations", dist_cut=10, seed=42, output_path=".", write_vmd=False, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure", files_proteins=None):
     
     if key not in ["No Mutations","No Type Mutations","Binding Site"]:
@@ -508,7 +536,8 @@ def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = 
         file_name = files_proteins[0]
         # Write VMD file to disc
         write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_path_vmd=output_path_vmd, file_name_tcl=file_name_tcl, vmd_out=vmd_out)
-
+    return cluster_list, labels
+    
 def get_Graph_network(indices, coordinates, dist_cut=10):
     G = ig.Graph()
     G.add_vertices(len(indices))
@@ -529,6 +558,7 @@ def get_Graph_network(indices, coordinates, dist_cut=10):
 def cluster_Network(G, seed=42):
     # Get partition
     partition = la.find_partition(G, la.CPMVertexPartition, seed=seed, resolution_parameter=0.05)
+
     # Extract labels
     labels = partition.membership
     # Convert labels to list
