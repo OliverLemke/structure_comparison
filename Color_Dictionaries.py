@@ -19,7 +19,9 @@ def get_dictionaries():
     dict_colors : dict
         Colors for amino acids, amino acid types, DSSP, Binding site, Mutation sites. Colormaps for SASA and pLDDT.
     dict_boundaries : dict
-        Boundaries for every key. Suffix "reduced" introduces a color for consistency between all strucutres.
+        Boundaries for every key. Suffix "reduced" introduces a color for consistency between all structures.
+    dict_amino_acids : dict
+        3-Letter to 1-Letter amino acid translation.
     """
     
     ## Amino Acid Type
