@@ -23,8 +23,10 @@ import leidenalg as la
 ## Functions ##
 ###############
 
-### Add Plotting indices (manual indices in reference) for subplots (like binding site)
-### Normalize SASA with G-X-G dictionary
+# TODO
+## Add Plotting indices (manual indices in reference) for subplots (like binding site)
+## Normalize SASA with G-X-G dictionary
+## Plotting variable tick distance (50,100,200,500)
 
 def get_Input(file_setup, ligand_setup=[], initial_path_proteins = ".", initial_path_ligands = ".", index = 0):
     """
@@ -578,7 +580,7 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     if do_plots_binding_site:
         size_full = 100
     else:
-        size_full = 20
+        size_full = 25
         
     if keys_ordered:
         order = [dict_mapping["Keys"].index(key) for key in keys_ordered]
@@ -591,7 +593,7 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     
     # Setup figure
     fig = plt.figure()
-    fig.set_size_inches(20,6)
+    fig.set_size_inches((len(dict_mapping["Mapping"])/10)+10,(len(dict_mapping["Mapping"])/5)+5)
     # Set up layout w.r.t. binding site is known/exists
     if ligands_exist:
         spec = fig.add_gridspec(ncols=1, nrows=9, height_ratios=[len(dict_mapping["Mapping"]),1,1,1,1,1,1,1,1], hspace=0)
@@ -625,7 +627,7 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     if do_plots_binding_site:
         ax.set_xticks(np.arange(10,np.shape(dict_molecules[reference]["Ligand Indices"])[0],10))        
     else:
-        ax.set_xticks(np.arange(50,np.shape(dict_mapping["Mapping"])[1],50))
+        ax.set_xticks(np.arange(100,np.shape(dict_mapping["Mapping"])[1],100))
     # Plot subfigures including layout
     key_s = "pLDDT"
     if do_plots_binding_site:
@@ -691,7 +693,7 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     ax6.set_yticklabels(["Amino Acid Type"])
     ax6.set_xticks([])
 
-    cax = fig.add_axes([ax.get_position().x1+0.01,ax.get_position().y0,0.02,ax.get_position().height])
+    cax = fig.add_axes([ax.get_position().x1+0.01,ax.get_position().y0,0.01,ax.get_position().height])
     cbar = plt.colorbar(im, cax=cax)
     if key in ["Amino Acid","Amino Acid reduced","Amino Acid Type","Amino Acid Type reduced","DSSP","DSSP reduced"]:
         cbar.set_ticks(np.arange(0,len(dict_mapping_colors["Color keys "+key])))
@@ -793,7 +795,7 @@ def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = 
     cluster_list, labels = cluster_Network(G, seed=seed)
     
     # Plot graph
-    plot_clustered_network(G, labels, output_path=output_path, summarize=summarize, dist_cut=dist_cut, coordinates=c_alpha_red)
+    plot_clustered_network(G, labels, output_path=output_path, summarize=summarize, dist_cut=dist_cut, coordinates=c_alpha_red, key=key)
 
     # Get indices for molecules
     indices_mol = [[ind for ind in range(len(c_alpha)) if selection[ind]!=1]]+[[indices[i] for i in item] for item in cluster_list]
@@ -872,7 +874,7 @@ def cluster_Network(G, seed=42):
     cluster_list = [np.where(labels==label)[0] for label in np.unique(labels)]  
     return cluster_list, labels
 
-def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut=10, coordinates=None):
+def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut=10, coordinates=None, key = "No Mutations"):
     """
     Plot the clustered network.
 
@@ -890,12 +892,20 @@ def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut
         Distance cutoff for network construction. The default is 10.
     coordinates : list of arr
         Positions of selected atoms. Needed if summarized is True. The default is None.
+    key : str, optional
+        Selection of residues to be clustered:  ["No Mutations","No Type Mutations","Binding Site"]. The default is "No Mutations".
 
     Returns
     -------
     None.
 
     """
+    
+    # Get suffix
+    Dict_type = {"No Mutations":"nm",
+                 "No Type Mutations":"ntm",
+                 "Binding Site":"bs"}
+    
     # Get colormap
     cmap = mpl.cm.get_cmap('jet_r')
     # Get discrete colors
@@ -906,7 +916,7 @@ def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut
     fig, ax = plt.subplots()
     ig.plot(G, layout=G.layout_kamada_kawai(), target=ax, vertex_color = [colors[cluster] for cluster in labels])
     plt.axis("off")
-    plt.savefig(os.path.join(output_path,"FIG_clustered_network.png"), bbox_inches="tight")
+    plt.savefig(os.path.join(output_path,"FIG_clustered_network_"+Dict_type[key]+".png"), bbox_inches="tight")
     
     if summarize:
         if not coordinates:
@@ -934,7 +944,7 @@ def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut
             size = (size/np.max(size)*10)+10
     
             G_sum.add_edges(edges)
-            ig.plot(G_sum, os.path.join(output_path,"FIG_clustered_network_summarized.png"), layout="kk", vertex_color = [colors[cluster] for cluster in np.unique(labels)], edge_width=weights, vertex_size = size)
+            ig.plot(G_sum, os.path.join(output_path,"FIG_clustered_network_"+Dict_type[key]+"_summarized.png"), layout="kk", vertex_color = [colors[cluster] for cluster in np.unique(labels)], edge_width=weights, vertex_size = size)
     
 def write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure"):
     """
