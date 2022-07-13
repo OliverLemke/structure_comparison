@@ -23,8 +23,8 @@ import leidenalg as la
 ## Functions ##
 ###############
 
-### Add docstring
 ### Add Plotting indices (manual indices in reference) for subplots (like binding site)
+### Normalize SASA with G-X-G dictionary
 
 def get_Input(file_setup, ligand_setup=[], initial_path_proteins = ".", initial_path_ligands = ".", index = 0):
     """
@@ -734,7 +734,7 @@ def write_output(dict_molecules, dict_mapping, dict_mapping_colors, reference, o
     # Save dictonary to file
     pickle.dump(dict_full, open(os.path.join(output_path_data,reference+".pkl"),"wb"))
 
-def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = "No Mutations", dist_cut=10, seed=42, output_path=".", write_vmd=False, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure", files_proteins=None):
+def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = "No Mutations", dist_cut=10, seed=42, output_path=".", write_vmd=False, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure", files_proteins=None, summarize=False):
     """
     Constructs and clusters the residues network for conserved amino acids.
 
@@ -764,6 +764,8 @@ def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = 
         Name of the VMD output. The default is "Structure".
     files_proteins : list of str
         List of all protein structures.
+    summarize : bool, optional
+        Summarization of the network. The default is False.
 
     Returns
     -------
@@ -791,7 +793,7 @@ def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = 
     cluster_list, labels = cluster_Network(G, seed=seed)
     
     # Plot graph
-    plot_clustered_network(G, labels, output_path=output_path)
+    plot_clustered_network(G, labels, output_path=output_path, summarize=summarize, dist_cut=dist_cut, coordinates=c_alpha_red)
 
     # Get indices for molecules
     indices_mol = [[ind for ind in range(len(c_alpha)) if selection[ind]!=1]]+[[indices[i] for i in item] for item in cluster_list]
@@ -870,7 +872,7 @@ def cluster_Network(G, seed=42):
     cluster_list = [np.where(labels==label)[0] for label in np.unique(labels)]  
     return cluster_list, labels
 
-def plot_clustered_network(G, labels, output_path="."):
+def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut=10, coordinates=None):
     """
     Plot the clustered network.
 
@@ -882,6 +884,12 @@ def plot_clustered_network(G, labels, output_path="."):
         Assignment of residues to clusters for atoms used in network construction.
     output_path : str, optional
         Path for data ouput. The default is ".".
+    summarize : bool, optional
+        Summarization of the network. The default is False.
+    dist_cut : float, optional
+        Distance cutoff for network construction. The default is 10.
+    coordinates : list of arr
+        Positions of selected atoms. Needed if summarized is True. The default is None.
 
     Returns
     -------
@@ -899,6 +907,31 @@ def plot_clustered_network(G, labels, output_path="."):
     ig.plot(G, layout=G.layout_kamada_kawai(), target=ax, vertex_color = [colors[cluster] for cluster in labels])
     plt.axis("off")
     plt.savefig(os.path.join(output_path,"clustered_network.png"), bbox_inches="tight")
+    
+    if summarize:
+        if not coordinates:
+            raise ValueError("Coordnates have to be provided.")
+        else:
+            dict_weights = {}
+            for i in np.unique(labels)[:-1]:
+                for j in np.unique(labels)[i+1:]:
+                    tree = scipy.spatial.cKDTree([coordinates[ind] for ind in [index for index,label in enumerate(labels) if label==i]])
+                    neighbors = []
+                    for atom_coord in [coordinates[ind] for ind in [index for index,label in enumerate(labels) if label==j]]:
+                        neighbors.append(tree.query_ball_point(atom_coord,dist_cut))
+                    dict_weights.update({str(i)+"_"+str(j):len([el for item in neighbors for el in item])})
+            
+            G_sum = ig.Graph()
+            G_sum.add_vertices(len(set(labels)))
+    
+            edges = [(i,j) for i in np.unique(labels)[:-1] for j in np.unique(labels)[i+1:] if dict_weights[str(i)+"_"+str(j)]>0]
+            weights = [dict_weights[str(i)+"_"+str(j)] for i in np.unique(labels)[:-1] for j in np.unique(labels)[i+1:] if dict_weights[str(i)+"_"+str(j)]>0]
+            weights = (weights/np.max(weights)*9)+1
+            size = [len(np.where(labels==label)[0]) for label in np.unique(labels)]
+            size = (size/np.max(size)*10)+10
+    
+            G_sum.add_edges(edges)
+            ig.plot(G_sum, os.path.join(output_path,"clustered_network_summarized.png"), layout="kk", vertex_color = [colors[cluster] for cluster in np.unique(labels)], edge_width=weights, vertex_size = size)
     
 def write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure"):
     """
