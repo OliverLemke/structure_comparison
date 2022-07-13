@@ -906,7 +906,7 @@ def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut
     fig, ax = plt.subplots()
     ig.plot(G, layout=G.layout_kamada_kawai(), target=ax, vertex_color = [colors[cluster] for cluster in labels])
     plt.axis("off")
-    plt.savefig(os.path.join(output_path,"clustered_network.png"), bbox_inches="tight")
+    plt.savefig(os.path.join(output_path,"FIG_clustered_network.png"), bbox_inches="tight")
     
     if summarize:
         if not coordinates:
@@ -925,13 +925,16 @@ def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut
             G_sum.add_vertices(len(set(labels)))
     
             edges = [(i,j) for i in np.unique(labels)[:-1] for j in np.unique(labels)[i+1:] if dict_weights[str(i)+"_"+str(j)]>0]
-            weights = [dict_weights[str(i)+"_"+str(j)] for i in np.unique(labels)[:-1] for j in np.unique(labels)[i+1:] if dict_weights[str(i)+"_"+str(j)]>0]
-            weights = (weights/np.max(weights)*9)+1
+            try:
+                weights = [dict_weights[str(i)+"_"+str(j)] for i in np.unique(labels)[:-1] for j in np.unique(labels)[i+1:] if dict_weights[str(i)+"_"+str(j)]>0]
+                weights = (weights/np.max(weights)*9)+1
+            except:
+                weights = []
             size = [len(np.where(labels==label)[0]) for label in np.unique(labels)]
             size = (size/np.max(size)*10)+10
     
             G_sum.add_edges(edges)
-            ig.plot(G_sum, os.path.join(output_path,"clustered_network_summarized.png"), layout="kk", vertex_color = [colors[cluster] for cluster in np.unique(labels)], edge_width=weights, vertex_size = size)
+            ig.plot(G_sum, os.path.join(output_path,"FIG_clustered_network_summarized.png"), layout="kk", vertex_color = [colors[cluster] for cluster in np.unique(labels)], edge_width=weights, vertex_size = size)
     
 def write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure"):
     """
