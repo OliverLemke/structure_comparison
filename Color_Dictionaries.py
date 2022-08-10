@@ -34,6 +34,12 @@ def get_dictionaries():
                       "GLY":"Flexible",                                                             # G -> Higher flexibility
                       "XYZ":"NoMap"}
     
+    ## max. SASA
+    dict_sasa_max = {'ALA': 1.2831596, 'CYS': 1.6075546, 'ASP': 1.6942018, 'GLU': 1.9520556, 'PHE': 2.3931725, 
+                     'GLY': 0.9859995, 'HIS': 2.1476686, 'ILE': 1.9781175, 'LYS': 2.4149895, 'LEU': 1.9980704, 
+                     'MET': 2.1391654, 'ASN': 1.8180864, 'PRO': 1.6501249, 'GLN': 1.996297, 'ARG': 2.7603362, 
+                     'SER': 1.4527341, 'THR': 1.6533911, 'VAL': 1.7248302, 'TRP': 2.773364, 'TYR': 2.5169885}
+    
     ## Colors
     dict_colors = {"Amino Acid":
                        {"LYS":"#154360","ARG":"#21618C","HIS":"#5499C7",                                    # Blue
@@ -104,6 +110,6 @@ def get_dictionaries():
                         "TYR":"Y",
                         "XYZ":"-"}
     
-    return dict_atom_type, dict_colors, dict_boundaries, dict_amino_acids
+    return dict_atom_type, dict_colors, dict_boundaries, dict_amino_acids, dict_sasa_max
     
 
