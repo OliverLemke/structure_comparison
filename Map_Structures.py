@@ -26,7 +26,10 @@ import leidenalg as la
 # TODO
 ## Add Plotting indices (manual indices in reference) for subplots (like binding site)
 ## Normalize SASA with G-X-G dictionary
-## Plotting variable tick distance (50,100,200,500)
+## Variable plotting tick distance (50,100,200,500)
+## Add network clusters to plotting as additional line (or color "no mutations"/"no type mutations")
+## Scoring algorithm
+## Failure detection algorithm for high-throughput scans
 
 def get_Input(file_setup, ligand_setup=[], initial_path_proteins = ".", initial_path_ligands = ".", index = 0):
     """
@@ -907,7 +910,7 @@ def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut
                  "Binding Site":"bs"}
     
     # Get colormap
-    cmap = mpl.cm.get_cmap('jet_r')
+    cmap = mpl.cm.get_cmap('turbo')
     # Get discrete colors
     colors_to_choose = np.linspace(0+1/len(set(labels)),1,len(set(labels)))
     colors = [cmap(el) for el in colors_to_choose]
@@ -977,7 +980,8 @@ def write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_pa
         file.write("# Use for pipeline w/o GUI: vmd -dispdev text -eofexit < %s\n"%file_name_tcl)
         file.write("\n")
         file.write("display backgroundgradient off\naxes location off\ndisplay depthcue off\ndisplay update on")
-        file.write("color add item Display Background black\ncolor Display Background black\ncolor scale method RGB\ncolor scale midpoint 0.50\ncolor scale min 0.00\n")
+        #file.write("color add item Display Background black\ncolor Display Background black\ncolor scale method RGB\ncolor scale midpoint 0.50\ncolor scale min 0.00\n")
+        file.write("color add item Display Background black\ncolor Display Background black\ncolor scale method Turbo\n")
         file.write("mol default material AOEdgy\nmol default style NewCartoon\nmol default selection {all}\nmol default color Beta\n")
         file.write("\n")
         file.write("mol new "+file_name.replace(" ","\ ")+"\n")
