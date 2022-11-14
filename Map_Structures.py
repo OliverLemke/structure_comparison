@@ -944,7 +944,7 @@ def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut
             except:
                 weights = []
             size = [len(np.where(labels==label)[0]) for label in np.unique(labels)]
-            size = (size/np.max(size)*10)+10
+            size = (size/np.max(size)*50)+10
     
             G_sum.add_edges(edges)
             ig.plot(G_sum, os.path.join(output_path,"FIG_clustered_network_"+Dict_type[key]+"_summarized.png"), layout="kk", vertex_color = [colors[cluster] for cluster in np.unique(labels)], edge_width=weights, vertex_size = size)
