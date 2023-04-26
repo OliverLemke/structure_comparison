@@ -30,6 +30,8 @@ import leidenalg as la
 ## Add network clusters to plotting as additional line (or color "no mutations"/"no type mutations")
 ## Scoring algorithm
 ## Failure detection algorithm for high-throughput scans
+## Remove reference from later dictionaries (not needed anymore)
+## imshow for binary vectors (overlapping, extrapolating)
 
 def get_Input(file_setup, ligand_setup=[], initial_path_proteins = ".", initial_path_ligands = ".", index = 0):
     """
@@ -112,10 +114,10 @@ def get_Dictionary_Molecules(reference, files_proteins):
     Returns
     -------
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
 
     """
-    # Define Dictonary    
+    # Define Dictionary    
     dict_molecules = {reference:[]}
     
     for file in files_proteins:
@@ -127,27 +129,25 @@ def get_Dictionary_Molecules(reference, files_proteins):
     return dict_molecules
                                 
 
-def get_Dictionary_Molecular_Analysis(reference, files_proteins, dict_molecules, do_dssp=True, do_sasa=True):
+def get_Dictionary_Molecular_Analysis(files_proteins, dict_molecules, do_dssp=True, do_sasa=True):
     """
     Update molecule dictionary for structural features
 
     Parameters
     ----------
-    reference : str
-        Reference file.
     files_proteins : list of str
         List of all protein structures.
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
     do_dssp : bool, optional
         Perform secondary structure prediction. The default is True.
-    do_sasa : TYPE, optional
+    do_sasa : bool, optional
         Perform accessible surface area prediction. The default is True.
 
     Returns
     -------
     dict_molecules : dict
-        Dictonary containing structural properties updated for structural features.
+        Dictionary containing structural properties updated for structural features.
 
     """
     for file in files_proteins:
@@ -165,20 +165,18 @@ def get_Dictionary_Molecular_Analysis(reference, files_proteins, dict_molecules,
             dict_molecules[mol].update({"SASA":sasa})
     return dict_molecules
 
-def get_Dictionary_Proteins(reference, dict_molecules):
+def get_Dictionary_Proteins(dict_molecules):
     """
     Update dictionary for selections of atoms.
 
     Parameters
     ----------
-    reference : str
-        Reference file.
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties. You need to run get_Dictionary_Molecules() beforehand.
     Returns
     -------
     dict_molecules : dict
-        Dictonary containing structural properties updated for selections.
+        Dictionary containing structural properties updated for selections.
 
     """
     for key, file in dict_molecules.items():
@@ -257,7 +255,7 @@ def get_indices_residues_ligands(dict_molecules, ligands, dist_cut_lig = 5, k = 
     Parameters
     ----------
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
     ligands : list of arr
         Ligand coordinates.
     dist_cut_lig : float, optional
@@ -268,7 +266,7 @@ def get_indices_residues_ligands(dict_molecules, ligands, dist_cut_lig = 5, k = 
     Returns
     -------
     dict_molecules : dict
-        Dictonary containing protein properties updated for residues close to ligands.
+        Dictionary containing protein properties updated for residues close to ligands.
 
     """
     for key, file in dict_molecules.items():
@@ -294,7 +292,7 @@ def mapping_Proteins(dict_molecules, reference, dist_cut = 2):
     Parameters
     ----------
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
     reference : str
         Reference file.
     dist_cut : float, optional
@@ -348,7 +346,7 @@ def write_indices_mapping(dict_molecules, dict_mapping, dist_cut = 2, output_pat
     Parameters
     ----------
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
     dict_mapping : dict
         Dictionary containg all mapping information with respect to the reference structure.
     dist_cut : float, optional
@@ -376,7 +374,7 @@ def mapping_Characteristics(dict_molecules, dict_mapping, dict_atom_type, do_dss
     Parameters
     ----------
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
     dict_mapping : dict
         Dictionary containg all mapping information with respect to the reference structure.
     dict_atom_type : dict
@@ -433,7 +431,7 @@ def mapping_colors(dict_mapping, dict_colors, dict_molecules, reference, color_m
     dict_colors : dict
         Colors for amino acids, amino acid types, DSSP, Binding site, Mutation sites. Colormaps for SASA and pLDDT.
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
     reference : str
         Reference file.
     color_match : str, optional
@@ -563,7 +561,7 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     do_plots_binding_site : bool, optional
         Plot only the binding site instead of all residues. The default is False.
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
     reference : str
         Reference file.
     fontsize : int, optional
@@ -717,7 +715,7 @@ def write_output(dict_molecules, dict_mapping, dict_mapping_colors, reference, o
     Parameters
     ----------
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
     dict_mapping : dict
         Dictionary containg all mapping information with respect to the reference structure.
     dict_mapping_colors : dict
@@ -736,7 +734,7 @@ def write_output(dict_molecules, dict_mapping, dict_mapping_colors, reference, o
     dict_full = {"Molecules":dict_molecules,
                  "Mapping":dict_mapping,
                  "Mapping Colors":dict_mapping_colors}
-    # Save dictonary to file
+    # Save dictionary to file
     pickle.dump(dict_full, open(os.path.join(output_path_data,reference+".pkl"),"wb"))
 
 def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = "No Mutations", dist_cut=10, seed=42, output_path=".", write_vmd=False, output_path_vmd=".", file_name_tcl="out_vmd.tcl", vmd_out="Structure", files_proteins=None, summarize=False):
@@ -746,7 +744,7 @@ def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = 
     Parameters
     ----------
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
     dict_mapping : dict
         Dictionary containg all mapping information with respect to the reference structure.
     reference : str
@@ -878,6 +876,10 @@ def cluster_Network(G, seed=42):
     return cluster_list, labels
 
 def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut=10, coordinates=None, key = "No Mutations"):
+    
+    ### For summarize increase size of markers and width
+    ### Include check for key (copy from above)
+    
     """
     Plot the clustered network.
 
@@ -944,7 +946,7 @@ def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut
             except:
                 weights = []
             size = [len(np.where(labels==label)[0]) for label in np.unique(labels)]
-            size = (size/np.max(size)*50)+10
+            size = (size/np.max(size)*150)+10
     
             G_sum.add_edges(edges)
             ig.plot(G_sum, os.path.join(output_path,"FIG_clustered_network_"+Dict_type[key]+"_summarized.png"), layout="kk", vertex_color = [colors[cluster] for cluster in np.unique(labels)], edge_width=weights, vertex_size = size)
@@ -956,7 +958,7 @@ def write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_pa
     Parameters
     ----------
     dict_molecules : dict
-        Dictonary containing structural properties.
+        Dictionary containing structural properties.
     reference : str
         Reference file.
     labels_mol : list of int
