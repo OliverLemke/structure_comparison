@@ -187,6 +187,8 @@ def get_Dictionary_Proteins(dict_molecules):
         coordinates = []
         amino_acid_index = []
         plddt = []
+        chains = []
+        c = 1
         for line in file["Molecule"]:
             # Get all cordinates and indices
             if ("ATOM " in line):
@@ -199,10 +201,13 @@ def get_Dictionary_Proteins(dict_molecules):
                 c_alpha.append(coord)
                 amino_acid_type.append(line[17:20])
                 plddt.append(float(line[60:66]))
+                chains.append(line[21]+str(c))
             # Get Heteroatoms
             elif ("HETATM" in line) and ("HOH" not in line):
                 coord = [float(el) for el in [line[30:38],line[38:46],line[46:54]]]
                 heteroatoms.append(coord)
+            if line.startswith("TER"):
+                c+=1
             
         # Update Dictionary
         dict_molecules[key].update({"C_alpha":c_alpha,
@@ -210,7 +215,8 @@ def get_Dictionary_Proteins(dict_molecules):
                                 "Heteroatoms":heteroatoms,
                                 "Indices":amino_acid_index,
                                 "Coordinates":coordinates,
-                                "pLDDT":plddt})
+                                "pLDDT":plddt,
+                                "Chains":chains})
     return dict_molecules
 
 def get_ligands(files_ligands, ligands_to_be_excluded, ligands_exist=True):
@@ -540,7 +546,7 @@ def mapping_colors(dict_mapping, dict_colors, dict_molecules, reference, color_m
     
     return dict_mapping_colors, ligands_exist
 
-def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundaries, output_path=".", ligands_exist=True, do_plots_binding_site=False, dict_molecules=None, reference=None, fontsize=10, keys_ordered = None):
+def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundaries, output_path=".", ligands_exist=True, do_plots_binding_site=False, dict_molecules=None, reference=None, fontsize=10, keys_ordered = None, svg=False):
     """
     Plots a comparison for selected features.
 
@@ -702,11 +708,18 @@ def plot_Feature_comparison(key, dict_mapping, dict_mapping_colors, dict_boundar
     else:
         cbar.set_label(key,rotation=90, fontsize=fontsize)
     
-    if do_plots_binding_site:
-        plt.savefig(os.path.join(output_path,"FIG_BS_"+key.replace(" ","_")+".png"), bbox_inches="tight")
+    if svg:
+        if do_plots_binding_site:
+            plt.savefig(os.path.join(output_path,"FIG_BS_"+key.replace(" ","_")+".svg"), bbox_inches="tight")
+        else:
+            plt.savefig(os.path.join(output_path,"FIG_"+key.replace(" ","_")+".svg"), bbox_inches="tight")
+        plt.close()
     else:
-        plt.savefig(os.path.join(output_path,"FIG_"+key.replace(" ","_")+".png"), bbox_inches="tight")
-    plt.close()
+        if do_plots_binding_site:
+            plt.savefig(os.path.join(output_path,"FIG_BS_"+key.replace(" ","_")+".png"), bbox_inches="tight")
+        else:
+            plt.savefig(os.path.join(output_path,"FIG_"+key.replace(" ","_")+".png"), bbox_inches="tight")
+        plt.close()
 
 def write_output(dict_molecules, dict_mapping, dict_mapping_colors, reference, output_path_data="."):
     """
@@ -810,7 +823,8 @@ def get_clustered_network(dict_molecules, dict_mapping_colors, reference, key = 
         file_name = files_proteins[0]
         # Write VMD file to disc
         write_vmd_output(dict_molecules, reference, labels_mol, file_name, output_path_vmd=output_path_vmd, file_name_tcl=file_name_tcl, vmd_out=vmd_out)
-    return labels_mol
+    dict_mapping_colors["Network clusters "+key] = labels_mol
+    return dict_mapping_colors
     
 def get_Graph_network(indices, coordinates, dist_cut=10):
     """
@@ -930,6 +944,9 @@ def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut
             dict_weights = {}
             for i in np.unique(labels)[:-1]:
                 for j in np.unique(labels)[i+1:]:
+                    #### TODO
+                    ## Put out of second loop
+                    ####
                     tree = scipy.spatial.cKDTree([coordinates[ind] for ind in [index for index,label in enumerate(labels) if label==i]])
                     neighbors = []
                     for atom_coord in [coordinates[ind] for ind in [index for index,label in enumerate(labels) if label==j]]:
@@ -946,7 +963,7 @@ def plot_clustered_network(G, labels, output_path=".", summarize=False, dist_cut
             except:
                 weights = []
             size = [len(np.where(labels==label)[0]) for label in np.unique(labels)]
-            size = (size/np.max(size)*150)+10
+            size = (size/np.max(size)*100)+10
     
             G_sum.add_edges(edges)
             ig.plot(G_sum, os.path.join(output_path,"FIG_clustered_network_"+Dict_type[key]+"_summarized.png"), layout="kk", vertex_color = [colors[cluster] for cluster in np.unique(labels)], edge_width=weights, vertex_size = size)
