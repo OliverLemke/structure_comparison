@@ -188,6 +188,7 @@ def get_Dictionary_Proteins(dict_molecules):
         amino_acid_index = []
         plddt = []
         chains = []
+        chain_index = []
         c = 1
         for line in file["Molecule"]:
             # Get all cordinates and indices
@@ -195,6 +196,7 @@ def get_Dictionary_Proteins(dict_molecules):
                 amino_acid_index.append(int(line[22:26]))
                 coord = [float(el) for el in [line[30:38],line[38:46],line[46:54]]]
                 coordinates.append(coord)
+                chain_index.append(line[21]+str(c))
             # Get C_alpha, atom types and pLDDT
             if ("ATOM " in line) and ("CA " in line):
                 coord = [float(el) for el in [line[30:38],line[38:46],line[46:54]]]                
@@ -216,7 +218,8 @@ def get_Dictionary_Proteins(dict_molecules):
                                 "Indices":amino_acid_index,
                                 "Coordinates":coordinates,
                                 "pLDDT":plddt,
-                                "Chains":chains})
+                                "Chains":chains,
+                                "Chains_idx":chain_index})
     return dict_molecules
 
 def get_ligands(files_ligands, ligands_to_be_excluded, ligands_exist=True):
